@@ -61,7 +61,10 @@ jobs:
           # Recreated rather than updated, so the tag follows the newest commit.
           gh release delete "$TAG" --yes --cleanup-tag || true
 
+          # --target is required: gh otherwise tags the default branch, so the
+          # release's source archives wouldn't match the APK attached to it.
           gh release create "$TAG" qs-actions-debug.apk \
+            --target "$GITHUB_SHA" \
             --prerelease \
             --title "Development build" \
             --notes-file release-notes.md
