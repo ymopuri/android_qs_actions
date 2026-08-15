@@ -84,6 +84,16 @@ Step 3 is unavoidable: `TileService`s are manifest components and can't be creat
 runtime. Tiles ship `android:enabled="false"` and are switched on once their action
 reports `isConfigured()`, so the Quick Settings editor only lists tiles that work.
 
+## Install
+
+Latest development build, straight from CI — no login, no zip:
+
+**[qs-actions-debug.apk](https://github.com/ymopuri/android_qs_actions/releases/download/dev/qs-actions-debug.apk)**
+
+The `dev` tag is rebuilt on every push, so the URL is stable and the contents
+aren't. It's debug-signed, so uninstall any copy signed with a different key
+first.
+
 ## Build
 
 ```
