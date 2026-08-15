@@ -79,10 +79,13 @@ class ShizukuToggleAction(private val context: Context) : QsAction {
                 return Result.failure(
                     IllegalStateException(
                         if (target) {
-                            "Shizuku didn't start. Check the auth token, and that Wi-Fi is on " +
-                                "if the fork's TCP mode is off."
+                            "Shizuku didn't start. Check Action/Package/token against " +
+                                "Shizuku's Automation card, and that Wi-Fi is on if the " +
+                                "fork's TCP mode is off."
                         } else {
-                            "Shizuku didn't stop. Check the auth token."
+                            "Shizuku didn't stop. Check Action/Package/token against " +
+                                "Shizuku's Automation card — no notification from Shizuku " +
+                                "means the broadcast reached no receiver."
                         }
                     )
                 )
@@ -103,13 +106,19 @@ class ShizukuToggleAction(private val context: Context) : QsAction {
 
     internal fun prefs(): ShizukuPrefs = prefs
 
-    internal fun saveConfig(shizukuPackage: String, authToken: String) {
-        prefs.save(shizukuPackage, authToken)
+    internal fun saveConfig(actionPrefix: String, shizukuPackage: String, authToken: String) {
+        prefs.save(actionPrefix, shizukuPackage, authToken)
         TileEnabler.syncTileEnabled(context, this)
     }
 
     private fun send(action: String) {
-        ShizukuControl.send(context, prefs.shizukuPackage, action, prefs.authToken)
+        ShizukuControl.send(
+            context = context,
+            actionPrefix = prefs.actionPrefix,
+            targetPackage = prefs.shizukuPackage,
+            action = action,
+            authToken = prefs.authToken,
+        )
     }
 
     companion object {

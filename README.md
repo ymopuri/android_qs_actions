@@ -22,13 +22,30 @@ Android 13+ (`minSdk 33`).
 
 ## Setup
 
-1. In Shizuku, open the **Automation** card on the home screen. It lists the intent
-   package and an auth token.
-2. In QS Actions, open the Shizuku card → **Set up**, paste both, and save.
-   - With the fork's **Stealth mode** on, the package has a random suffix
-     (e.g. `moe.shizuku.privileged.api.p1k65`). Use that, not the upstream name —
-     the fork derives its action strings from its own application ID.
+1. In Shizuku, tap the **Automation** card on the home screen. It lists an Action, a
+   Package, and an auth token (Extras).
+2. In QS Actions, open the Shizuku card → **Set up**, copy all three across, and save.
 3. Tap **Add tile** to drop the tile into Quick Settings.
+
+### Action and Package are not the same value
+
+With the fork's **Stealth mode** on, the two diverge, and this looks like a typo but
+isn't:
+
+| Field | Example |
+|-------|---------|
+| Action | `moe.shizuku.privileged.api` (no suffix) |
+| Package | `moe.shizuku.privileged.api.p1k65` (random suffix) |
+
+Stealth mode's `changePackageName()` rewrites the manifest package, but the fork's
+receivers gate on `BuildConfig.APPLICATION_ID` — a constant compiled into the DEX
+that the rename doesn't touch. So the action keeps the original name. Copy both
+exactly as the Automation card shows them.
+
+Getting this wrong fails *silently*: the broadcast matches no receiver, so Shizuku
+does nothing and doesn't even post an auth-failure notification. If a test send
+produces no reaction at all, the Action or Package is wrong. If it produces an
+"authentication invalid" notification, they're right and the token is wrong.
 
 Enable the fork's **TCP mode** if you want restarts to work without Wi-Fi. Without
 it, Shizuku waits for a Wi-Fi connection before starting.

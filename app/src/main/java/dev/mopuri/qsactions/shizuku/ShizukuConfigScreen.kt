@@ -52,6 +52,7 @@ internal fun ShizukuConfigScreen(
 
     val revision by prefs.revision.collectAsStateWithLifecycle()
 
+    var actionPrefix by rememberSaveable { mutableStateOf(prefs.actionPrefix) }
     var packageName by rememberSaveable { mutableStateOf(prefs.shizukuPackage) }
     var authToken by rememberSaveable { mutableStateOf(prefs.authToken) }
 
@@ -80,16 +81,34 @@ internal fun ShizukuConfigScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                "Open Shizuku, find the Automation card on its home screen, and copy the " +
-                    "package name and auth token it lists here.",
+                "Open Shizuku, tap the Automation card on its home screen, and copy the " +
+                    "three values it lists into the matching fields below.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                "On a Stealth-mode install these two genuinely differ: the action keeps the " +
+                    "original package name while the package field gets the random suffix. " +
+                    "That's not a typo — copy both exactly as the card shows them.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            OutlinedTextField(
+                value = actionPrefix,
+                onValueChange = { actionPrefix = it },
+                label = { Text("Action") },
+                supportingText = {
+                    Text("Without the trailing .START / .STOP — e.g. moe.shizuku.privileged.api")
+                },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
             )
 
             OutlinedTextField(
                 value = packageName,
                 onValueChange = { packageName = it },
-                label = { Text("Shizuku package") },
+                label = { Text("Package") },
                 supportingText = {
                     Text("With Stealth mode on this has a random suffix, e.g. …api.p1k65")
                 },
@@ -100,7 +119,7 @@ internal fun ShizukuConfigScreen(
             OutlinedTextField(
                 value = authToken,
                 onValueChange = { authToken = it },
-                label = { Text("Auth token") },
+                label = { Text("Auth token (Extras)") },
                 singleLine = true,
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                     imeAction = ImeAction.Done
@@ -110,10 +129,12 @@ internal fun ShizukuConfigScreen(
 
             Button(
                 onClick = {
-                    action.saveConfig(packageName, authToken)
+                    action.saveConfig(actionPrefix, packageName, authToken)
                     notify("Saved")
                 },
-                enabled = packageName.isNotBlank() && authToken.isNotBlank(),
+                enabled = actionPrefix.isNotBlank() &&
+                    packageName.isNotBlank() &&
+                    authToken.isNotBlank(),
             ) {
                 Text("Save")
             }
@@ -122,8 +143,10 @@ internal fun ShizukuConfigScreen(
 
             Text("Test", style = MaterialTheme.typography.titleMedium)
             Text(
-                "Sends the broadcast directly. A wrong token makes Shizuku post an " +
-                    "\"authentication invalid\" notification — a quick way to check.",
+                "Sends the broadcast directly. Shizuku should react, or post an " +
+                    "\"authentication invalid\" notification if the token is wrong. " +
+                    "No reaction at all means the Action or Package is wrong — the " +
+                    "broadcast reached no receiver.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -132,9 +155,13 @@ internal fun ShizukuConfigScreen(
                     enabled = prefs.isConfigured,
                     onClick = {
                         ShizukuControl.send(
-                            context, prefs.shizukuPackage, ShizukuControl.START, prefs.authToken
+                            context = context,
+                            actionPrefix = prefs.actionPrefix,
+                            targetPackage = prefs.shizukuPackage,
+                            action = ShizukuControl.START,
+                            authToken = prefs.authToken,
                         )
-                        notify("Sent START")
+                        notify("Sent ${prefs.actionPrefix}.START")
                     },
                 ) { Text("Send START") }
 
@@ -142,9 +169,13 @@ internal fun ShizukuConfigScreen(
                     enabled = prefs.isConfigured,
                     onClick = {
                         ShizukuControl.send(
-                            context, prefs.shizukuPackage, ShizukuControl.STOP, prefs.authToken
+                            context = context,
+                            actionPrefix = prefs.actionPrefix,
+                            targetPackage = prefs.shizukuPackage,
+                            action = ShizukuControl.STOP,
+                            authToken = prefs.authToken,
                         )
-                        notify("Sent STOP")
+                        notify("Sent ${prefs.actionPrefix}.STOP")
                     },
                 ) { Text("Send STOP") }
             }
