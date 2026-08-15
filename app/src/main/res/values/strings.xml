@@ -1,4 +1,7 @@
 <resources>
-    <string name="app_name">QS Actions</string>
+    <string name="app_name">Quick Settings Actions</string>
     <string name="shizuku_tile_label">Shizuku</string>
+
+    <string name="settings">Settings</string>
+    <string name="back">Back</string>
 </resources>

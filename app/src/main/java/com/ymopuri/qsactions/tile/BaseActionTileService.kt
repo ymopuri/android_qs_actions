@@ -4,8 +4,11 @@ import android.app.PendingIntent
 import android.content.Intent
 import android.graphics.drawable.Icon
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
+import android.widget.Toast
 import com.ymopuri.qsactions.action.ActionRegistry
 import com.ymopuri.qsactions.action.ActionState
 import com.ymopuri.qsactions.action.QsAction
@@ -29,6 +32,9 @@ abstract class BaseActionTileService : TileService() {
     private val action: QsAction? get() = ActionRegistry.find(this, actionId)
 
     private var listeningScope: CoroutineScope? = null
+
+    /** Last rendered state, so onClick knows which direction it's toggling. */
+    private var currentState: ActionState? = null
 
     override fun onStartListening() {
         super.onStartListening()
@@ -55,15 +61,33 @@ abstract class BaseActionTileService : TileService() {
             return
         }
 
+        val wasOn = ActionState.On == currentState
         render(action, ActionState.Working)
         // Deliberately not the listening scope: the QS panel collapses on tap, which
         // ends listening well before a toggle finishes.
-        TileScope.scope.launch { action.toggle() }
+        TileScope.scope.launch {
+            action.toggle()
+                .onSuccess { toast(if (wasOn) action.offMessage else action.onMessage) }
+                .onFailure { toast(it.message ?: "Couldn't toggle ${action.title}", long = true) }
+        }
+    }
+
+    /**
+     * Feedback for the tile path only; the in-app switch shows its own toast. A
+     * TileService has no Compose surface, so this is a system toast and the OS
+     * styles it.
+     */
+    private fun toast(message: String, long: Boolean = false) {
+        val duration = if (long) Toast.LENGTH_LONG else Toast.LENGTH_SHORT
+        Handler(Looper.getMainLooper()).post {
+            Toast.makeText(applicationContext, message, duration).show()
+        }
     }
 
     private fun render(action: QsAction, state: ActionState) {
+        currentState = state
         val tile = qsTile ?: return
-        tile.label = action.title
+        tile.label = TileLabelStore.get(this).labelFor(action)
         tile.icon = Icon.createWithResource(this, action.tileIconRes)
         when (state) {
             ActionState.On -> {

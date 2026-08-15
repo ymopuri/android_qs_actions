@@ -39,6 +39,11 @@ interface QsAction {
     @get:DrawableRes
     val tileIconRes: Int
 
+    /** Confirmation shown after a successful toggle. Overridden for better wording. */
+    val onMessage: String get() = "$title on"
+
+    val offMessage: String get() = "$title off"
+
     fun state(): Flow<ActionState>
 
     /**

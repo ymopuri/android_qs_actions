@@ -1,4 +1,4 @@
-# QS Actions
+# Quick Settings Actions
 
 A small Android app that puts toggleable actions in Quick Settings. The first — and
 currently only — action starts and stops Shizuku.
@@ -24,8 +24,9 @@ Android 13+ (`minSdk 33`).
 
 1. In Shizuku, tap the **Automation** card on the home screen. It lists an Action, a
    Package, and an auth token (Extras).
-2. In QS Actions, open the Shizuku card → **Set up**, copy all three across, and save.
-3. Tap **Add tile** to drop the tile into Quick Settings.
+2. In Quick Settings Actions, open the Shizuku control card → **Set up**, copy all
+   three across, and save.
+3. Tap **Add tile**, name the tile, and confirm the system prompt.
 
 ### Action and Package are not the same value
 
@@ -67,9 +68,11 @@ This needs `WRITE_SECURE_SETTINGS`, granted once while Shizuku is running:
 pm grant com.ymopuri.qsactions android.permission.WRITE_SECURE_SETTINGS
 ```
 
-The config screen has a button that runs this through Shizuku, and a copy button if
-you'd rather run it from a terminal or a PC. The app works fine without it — you just
-don't get the lockdown.
+This lives in the app's own **Settings** (gear, top right) rather than on the
+Shizuku page, because the permission is app-wide — future actions will want it too.
+There's a button that runs the grant through Shizuku, and a copy button if you'd
+rather run it from a terminal or a PC. The app works fine without it — you just
+don't get the lockdown, and its switch stays disabled.
 
 **Try plain stop against your bank first.** If stopping Shizuku alone is enough, you
 don't need any of this.

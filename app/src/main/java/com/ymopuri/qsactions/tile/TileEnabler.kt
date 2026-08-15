@@ -32,6 +32,9 @@ object TileEnabler {
     /**
      * Ask the system to add this specific tile, rather than telling the user to go
      * edit Quick Settings by hand. The component must be enabled first.
+     *
+     * The label shown in the system prompt is the user's chosen tile name, so what
+     * they typed in the rename dialog is what they're asked to confirm.
      */
     fun requestAddTile(context: Context, action: QsAction, onResult: (Int) -> Unit) {
         val statusBar = context.getSystemService(StatusBarManager::class.java)
@@ -41,7 +44,7 @@ object TileEnabler {
         }
         statusBar.requestAddTileService(
             action.tileComponent,
-            action.title,
+            TileLabelStore.get(context).labelFor(action),
             Icon.createWithResource(context, action.tileIconRes),
             context.mainExecutor,
             Consumer<Int> { result -> onResult(result) },

@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import androidx.compose.runtime.Composable
 import com.ymopuri.qsactions.R
+import com.ymopuri.qsactions.system.SecureSettings
 import com.ymopuri.qsactions.action.ActionState
 import com.ymopuri.qsactions.action.QsAction
 import com.ymopuri.qsactions.tile.ShizukuTileService
@@ -31,15 +32,21 @@ class ShizukuToggleAction(private val context: Context) : QsAction {
 
     override val id: String = ID
 
-    override val title: String = "Shizuku"
+    override val title: String = "Shizuku control"
 
     override val summary: String =
-        "Start and stop Shizuku from Quick Settings, so banking apps stop complaining."
+        "Start and stop Shizuku from Quick Settings, so banking apps stop complaining. " +
+            "Requires thedjchi's Shizuku fork — upstream Shizuku exposes no start/stop " +
+            "intent, so this won't work with it."
 
     override val tileComponent: ComponentName =
         ComponentName(context, ShizukuTileService::class.java)
 
     override val tileIconRes: Int = R.drawable.ic_tile_shizuku
+
+    override val onMessage: String = "Shizuku started"
+
+    override val offMessage: String = "Shizuku stopped"
 
     override val hasConfig: Boolean = true
 
@@ -66,7 +73,7 @@ class ShizukuToggleAction(private val context: Context) : QsAction {
             if (target) {
                 // Shizuku re-enables adb_enabled/adb_wifi_enabled itself, but never
                 // development_settings_enabled — so restore that before asking it to start.
-                if (prefs.lockdown) DebugFlags.restoreDeveloperOptions(context)
+                if (prefs.lockdown) SecureSettings.enableDeveloperOptions(context)
                 send(ShizukuControl.START)
             } else {
                 send(ShizukuControl.STOP)
@@ -92,7 +99,7 @@ class ShizukuToggleAction(private val context: Context) : QsAction {
             }
 
             // Only clear the debugging flags once Shizuku is actually down.
-            if (!target && prefs.lockdown) DebugFlags.lockDown(context)
+            if (!target && prefs.lockdown) SecureSettings.disableDebugging(context)
             return Result.success(Unit)
         } finally {
             pending.value = null

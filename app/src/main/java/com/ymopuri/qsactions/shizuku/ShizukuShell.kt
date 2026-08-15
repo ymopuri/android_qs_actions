@@ -6,6 +6,7 @@ import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.IBinder
 import com.ymopuri.qsactions.BuildConfig
+import com.ymopuri.qsactions.system.SecureSettings
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import rikka.shizuku.Shizuku
@@ -23,7 +24,7 @@ object ShizukuShell {
     private const val BIND_TIMEOUT_MS = 20_000L
 
     suspend fun grantWriteSecureSettings(context: Context): Result<String> {
-        val command = DebugFlags.grantCommand(context.packageName)
+        val command = SecureSettings.grantCommand(context.packageName)
         return exec(context, command)
     }
 

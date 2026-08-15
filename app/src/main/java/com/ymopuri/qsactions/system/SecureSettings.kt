@@ -1,20 +1,25 @@
-package com.ymopuri.qsactions.shizuku
+package com.ymopuri.qsactions.system
 
 import android.Manifest
+import android.content.ContentResolver
 import android.content.Context
 import android.content.pm.PackageManager
 import android.provider.Settings
 
 /**
- * The optional lockdown: stopping Shizuku leaves Developer options and USB debugging
- * on, and that — rather than Shizuku itself — is usually what banking apps check.
+ * Everything that needs `WRITE_SECURE_SETTINGS`.
  *
- * Asymmetry worth knowing: the fork's `AdbStartWorker` re-enables `adb_enabled` and
- * `adb_wifi_enabled` on START by itself, but nothing in the fork touches
- * `development_settings_enabled`. So we own restoring that one before a START, or the
- * start is likely to fail.
+ * Deliberately generic and free of any Shizuku reference: the permission is
+ * app-wide and future actions are likely to want it. Shizuku is only the
+ * *mechanism* by which it gets granted — see
+ * [com.ymopuri.qsactions.shizuku.ShizukuShell].
+ *
+ * Asymmetry worth knowing for the Shizuku action specifically: the fork's
+ * `AdbStartWorker` re-enables `adb_enabled` and `adb_wifi_enabled` on start by
+ * itself, but nothing in the fork touches `development_settings_enabled`. So this
+ * app owns restoring that one before a start, or the start is likely to fail.
  */
-object DebugFlags {
+object SecureSettings {
 
     private const val DEVELOPMENT_SETTINGS_ENABLED = "development_settings_enabled"
     private const val ADB_WIFI_ENABLED = "adb_wifi_enabled"
@@ -27,24 +32,24 @@ object DebugFlags {
     fun grantCommand(packageName: String): String =
         "pm grant $packageName ${Manifest.permission.WRITE_SECURE_SETTINGS}"
 
-    /** Clears debugging flags. Call *after* Shizuku has actually stopped. */
-    fun lockDown(context: Context): Result<Unit> = write(context) { resolver ->
+    /** Clears the debugging flags. Call *after* whatever needed them has stopped. */
+    fun disableDebugging(context: Context): Result<Unit> = write(context) { resolver ->
         Settings.Global.putInt(resolver, ADB_WIFI_ENABLED, 0)
         Settings.Global.putInt(resolver, Settings.Global.ADB_ENABLED, 0)
         Settings.Global.putInt(resolver, DEVELOPMENT_SETTINGS_ENABLED, 0)
     }
 
     /**
-     * Re-opens Developer options ahead of a START. `adb_enabled` / `adb_wifi_enabled`
-     * are left to Shizuku, which sets them itself and knows the right order.
+     * Re-opens Developer options. The ADB flags are left alone: Shizuku sets those
+     * itself and knows the right order to do it in.
      */
-    fun restoreDeveloperOptions(context: Context): Result<Unit> = write(context) { resolver ->
+    fun enableDeveloperOptions(context: Context): Result<Unit> = write(context) { resolver ->
         Settings.Global.putInt(resolver, DEVELOPMENT_SETTINGS_ENABLED, 1)
     }
 
     private inline fun write(
         context: Context,
-        block: (android.content.ContentResolver) -> Unit,
+        block: (ContentResolver) -> Unit,
     ): Result<Unit> {
         if (!canWrite(context)) {
             return Result.failure(SecurityException("WRITE_SECURE_SETTINGS not granted"))
