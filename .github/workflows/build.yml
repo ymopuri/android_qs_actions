@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # needed to publish the rolling prerelease
     steps:
       - uses: actions/checkout@v4
 
@@ -27,9 +29,42 @@ jobs:
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --stacktrace
 
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: qs-actions-debug
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+      # Artifacts are zipped and need a signed-in GitHub session, which makes
+      # installing on a phone awkward. A rolling prerelease gives a stable,
+      # direct, login-free download URL instead:
+      #   .../releases/download/dev/qs-actions-debug.apk
+      - name: Publish APK to the rolling dev release
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: dev
+        run: |
+          set -euo pipefail
+          cp app/build/outputs/apk/debug/app-debug.apk qs-actions-debug.apk
+
+          {
+            echo "Automatic build of \`$GITHUB_REF_NAME\` at \`${GITHUB_SHA:0:7}\`."
+            echo
+            echo "Debug-signed — uninstall any copy signed with a different key first."
+            echo
+            echo "This tag is rebuilt on every push: the download URL stays the same,"
+            echo "the contents change."
+          } > release-notes.md
+
+          # Recreated rather than updated, so the tag follows the newest commit.
+          gh release delete "$TAG" --yes --cleanup-tag || true
+
+          # --target is required: gh otherwise tags the default branch, so the
+          # release's source archives wouldn't match the APK attached to it.
+          gh release create "$TAG" qs-actions-debug.apk \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "Development build" \
+            --notes-file release-notes.md
