@@ -64,7 +64,7 @@ Worth knowing: the fork's `AdbStartWorker` re-enables `adb_enabled` and
 This needs `WRITE_SECURE_SETTINGS`, granted once while Shizuku is running:
 
 ```
-pm grant dev.mopuri.qsactions android.permission.WRITE_SECURE_SETTINGS
+pm grant com.ymopuri.qsactions android.permission.WRITE_SECURE_SETTINGS
 ```
 
 The config screen has a button that runs this through Shizuku, and a copy button if

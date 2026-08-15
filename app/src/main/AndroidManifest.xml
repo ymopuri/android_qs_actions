@@ -6,7 +6,7 @@
         Only needed by the optional "lockdown" step, which clears
         development_settings_enabled / adb_enabled when an action turns off.
         Granted once with:
-          pm grant dev.mopuri.qsactions android.permission.WRITE_SECURE_SETTINGS
+          pm grant com.ymopuri.qsactions android.permission.WRITE_SECURE_SETTINGS
         which works because the permission carries the "development" protection
         flag. The app is fully functional without it.
     -->

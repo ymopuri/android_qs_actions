@@ -7,16 +7,16 @@ plugins {
 }
 
 android {
-    namespace = "dev.mopuri.qsactions"
+    namespace = "com.ymopuri.qsactions"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "dev.mopuri.qsactions"
+        applicationId = "com.ymopuri.qsactions"
         // requestAddTileService() and the intent-based Shizuku fork both require 33.
         minSdk = 33
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
     }
 
     buildTypes {
