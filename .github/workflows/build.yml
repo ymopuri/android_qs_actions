@@ -6,6 +6,11 @@ on:
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Publish a release at this version (e.g. 0.2.0). Leave blank to only build."
+        required: false
+        default: ""
 
 jobs:
   build:
@@ -43,8 +48,12 @@ jobs:
 
   release:
     name: Publish release
-    # Only for version tags: `git tag v0.2.0 && git push origin v0.2.0`.
-    if: startsWith(github.ref, 'refs/tags/v')
+    # Either push a `v*` tag, or run this workflow manually with a version — the
+    # manual path creates the tag server-side via `gh release create --target`,
+    # which is the only route available where tag pushes are blocked.
+    if: >-
+      startsWith(github.ref, 'refs/tags/v') ||
+      (github.event_name == 'workflow_dispatch' && inputs.version != '')
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -96,31 +105,46 @@ jobs:
 
       - name: Stage the APK under its release name
         id: stage
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          VERSION="${GITHUB_REF_NAME#v}"
+          if [ -n "${INPUT_VERSION:-}" ]; then
+            VERSION="$INPUT_VERSION"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
           NAME="quick-settings-actions-${VERSION}.apk"
           APK=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
           cp "$APK" "$NAME"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
           ASSET: ${{ steps.stage.outputs.name }}
           VERSION: ${{ steps.stage.outputs.version }}
+          TAG: ${{ steps.stage.outputs.tag }}
         run: |
           set -euo pipefail
           {
-            echo "Quick Settings Actions $VERSION"
+            echo "Download the APK below and install it — nothing else to set up."
             echo
-            echo "Universal APK — includes every ABI, so there is one file for all devices."
+            echo "Universal build: every ABI in one file, so there is nothing to choose"
+            echo "between. Minified with R8 and release-signed."
             echo
-            echo "Release-signed. If you previously installed a debug build, uninstall it"
-            echo "first: the signing key differs and Android will refuse the upgrade."
+            echo "If you have an older debug build installed, uninstall it first — the"
+            echo "signing key differs and Android will refuse the upgrade."
+            echo
+            echo "Requires Android 13+ and [thedjchi's Shizuku fork](https://github.com/thedjchi/Shizuku);"
+            echo "upstream Shizuku exposes no start/stop intent."
           } > release-notes.md
 
-          gh release create "$GITHUB_REF_NAME" "$ASSET" \
+          # --target pins the tag to this commit, and creates the tag if it does
+          # not already exist.
+          gh release create "$TAG" "$ASSET" \
+            --target "$GITHUB_SHA" \
             --title "Quick Settings Actions $VERSION" \
             --notes-file release-notes.md
