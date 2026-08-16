@@ -89,13 +89,16 @@ reports `isConfigured()`, so the Quick Settings editor only lists tiles that wor
 
 ## Install
 
-Latest development build, straight from CI — no login, no zip:
+Grab the APK from the [latest release](https://github.com/ymopuri/android_qs_actions/releases/latest).
 
-**[qs-actions-debug.apk](https://github.com/ymopuri/android_qs_actions/releases/download/dev/qs-actions-debug.apk)**
+It's a **universal** APK — every ABI in one file, so there's nothing to choose
+between. (The app has no native code of its own; the only `.so` in there is a
+~10 KB Compose helper, which is why per-architecture builds aren't worth the
+extra files.)
 
-The `dev` tag is rebuilt on every push, so the URL is stable and the contents
-aren't. It's debug-signed, so uninstall any copy signed with a different key
-first.
+Releases are R8-minified and release-signed. If you have an older debug build
+installed, uninstall it first — the signing key differs and Android will refuse
+the upgrade.
 
 ## Build
 
@@ -103,6 +106,46 @@ first.
 ./gradlew assembleDebug
 ./gradlew testDebugUnitTest
 ```
+
+`assembleRelease` works locally too, but produces an **unsigned** APK unless the
+signing environment variables below are set.
+
+## Cutting a release
+
+Releases are published by CI when a `v*` tag is pushed:
+
+```
+git tag v0.2.0 && git push origin v0.2.0
+```
+
+Keep `versionName` in `app/build.gradle.kts` in step with the tag — the release
+is named from the tag, not from the build.
+
+### One-time signing setup
+
+Generate a keystore **on your own machine** and keep it somewhere safe. If you
+lose it you cannot ship an upgrade to anyone who installed a previous release —
+Android requires the same key.
+
+```
+keytool -genkeypair -v \
+  -keystore release.jks \
+  -alias qsactions \
+  -keyalg RSA -keysize 4096 -validity 10000
+```
+
+Then add four [repository secrets](../../settings/secrets/actions):
+
+| Secret | Value |
+|---|---|
+| `KEYSTORE_BASE64` | `base64 -w0 release.jks` |
+| `KEYSTORE_PASSWORD` | the keystore password |
+| `KEY_ALIAS` | `qsactions` |
+| `KEY_PASSWORD` | the key password |
+
+CI decodes the keystore into the runner's temp directory, builds, and verifies
+with `apksigner` before publishing, so an unsigned APK fails the job rather than
+reaching the release page.
 
 ## Credits
 
