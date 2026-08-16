@@ -1,5 +1,12 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+/**
+ * An unset GitHub Actions secret arrives as an empty string rather than as an
+ * absent variable, so `?:` alone would accept "" as a real value and then fail on
+ * an empty keystore path. Blank is treated as absent here.
+ */
+fun envOrNull(name: String): String? = System.getenv(name)?.takeIf { it.isNotBlank() }
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -26,16 +33,16 @@ android {
     // Every value can be overridden by environment variable, so moving to a private
     // key later means setting four secrets in CI and changing nothing here.
     val defaultKeystore = rootProject.file("signing/release.jks")
-    val keystorePath: String? = System.getenv("KEYSTORE_FILE")
+    val keystorePath: String? = envOrNull("KEYSTORE_FILE")
         ?: defaultKeystore.takeIf { it.exists() }?.absolutePath
 
     signingConfigs {
         if (keystorePath != null) {
             create("release") {
                 storeFile = file(keystorePath)
-                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "qsactions"
-                keyAlias = System.getenv("KEY_ALIAS") ?: "qsactions"
-                keyPassword = System.getenv("KEY_PASSWORD") ?: "qsactions"
+                storePassword = envOrNull("KEYSTORE_PASSWORD") ?: "qsactions"
+                keyAlias = envOrNull("KEY_ALIAS") ?: "qsactions"
+                keyPassword = envOrNull("KEY_PASSWORD") ?: "qsactions"
             }
         }
     }
