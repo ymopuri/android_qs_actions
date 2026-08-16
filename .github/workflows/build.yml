@@ -3,19 +3,19 @@ name: Build
 on:
   push:
     branches: ["**"]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
 jobs:
   build:
+    name: Test and build
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # needed to publish the rolling prerelease
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -29,42 +29,92 @@ jobs:
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --stacktrace
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+      # Builds unsigned, but still runs R8 — so a keep rule that breaks the Shizuku
+      # integration shows up on an ordinary push rather than at tag time.
+      - name: Assemble release APK (unsigned, R8 smoke test)
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Upload debug APK artifact
+        uses: actions/upload-artifact@v5
         with:
           name: qs-actions-debug
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
-      # Artifacts are zipped and need a signed-in GitHub session, which makes
-      # installing on a phone awkward. A rolling prerelease gives a stable,
-      # direct, login-free download URL instead:
-      #   .../releases/download/dev/qs-actions-debug.apk
-      - name: Publish APK to the rolling dev release
-        if: github.event_name != 'pull_request'
+  release:
+    name: Publish release
+    # Only for version tags: `git tag v0.2.0 && git push origin v0.2.0`.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Restore signing keystore
         env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: dev
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
           set -euo pipefail
-          cp app/build/outputs/apk/debug/app-debug.apk qs-actions-debug.apk
+          if [ -z "${KEYSTORE_BASE64:-}" ]; then
+            echo "::error::KEYSTORE_BASE64 secret is not set — cannot sign the release."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
 
+      - name: Assemble signed release APK
+        env:
+          KEYSTORE_FILE: ${{ runner.temp }}/release.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Verify the APK is actually signed
+        run: |
+          set -euo pipefail
+          APK=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
+          BUILD_TOOLS=$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -type d | sort -V | tail -1)
+          # A silently unsigned APK would install nowhere; fail here instead.
+          "$BUILD_TOOLS/apksigner" verify --print-certs "$APK"
+
+      - name: Stage the APK under its release name
+        id: stage
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          NAME="quick-settings-actions-${VERSION}.apk"
+          APK=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
+          cp "$APK" "$NAME"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ASSET: ${{ steps.stage.outputs.name }}
+          VERSION: ${{ steps.stage.outputs.version }}
+        run: |
+          set -euo pipefail
           {
-            echo "Automatic build of \`$GITHUB_REF_NAME\` at \`${GITHUB_SHA:0:7}\`."
+            echo "Quick Settings Actions $VERSION"
             echo
-            echo "Debug-signed — uninstall any copy signed with a different key first."
+            echo "Universal APK — includes every ABI, so there is one file for all devices."
             echo
-            echo "This tag is rebuilt on every push: the download URL stays the same,"
-            echo "the contents change."
+            echo "Release-signed. If you previously installed a debug build, uninstall it"
+            echo "first: the signing key differs and Android will refuse the upgrade."
           } > release-notes.md
 
-          # Recreated rather than updated, so the tag follows the newest commit.
-          gh release delete "$TAG" --yes --cleanup-tag || true
-
-          # --target is required: gh otherwise tags the default branch, so the
-          # release's source archives wouldn't match the APK attached to it.
-          gh release create "$TAG" qs-actions-debug.apk \
-            --target "$GITHUB_SHA" \
-            --prerelease \
-            --title "Development build" \
+          gh release create "$GITHUB_REF_NAME" "$ASSET" \
+            --title "Quick Settings Actions $VERSION" \
             --notes-file release-notes.md
