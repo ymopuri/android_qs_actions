@@ -1,5 +1,12 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+/**
+ * An unset GitHub Actions secret arrives as an empty string rather than as an
+ * absent variable, so `?:` alone would accept "" as a real value and then fail on
+ * an empty keystore path. Blank is treated as absent here.
+ */
+fun envOrNull(name: String): String? = System.getenv(name)?.takeIf { it.isNotBlank() }
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -19,17 +26,23 @@ android {
         versionName = "0.2.0"
     }
 
-    // Supplied by CI from repository secrets. Absent locally, in which case the
-    // release variant builds unsigned rather than failing outright.
-    val keystorePath: String? = System.getenv("KEYSTORE_FILE")
+    // The checked-in key signs releases so anyone can build an identical, installable
+    // APK — no secrets to configure. It is deliberately not a secret: see
+    // signing/README.md for what that does and doesn't cost.
+    //
+    // Every value can be overridden by environment variable, so moving to a private
+    // key later means setting four secrets in CI and changing nothing here.
+    val defaultKeystore = rootProject.file("signing/release.jks")
+    val keystorePath: String? = envOrNull("KEYSTORE_FILE")
+        ?: defaultKeystore.takeIf { it.exists() }?.absolutePath
 
     signingConfigs {
         if (keystorePath != null) {
             create("release") {
                 storeFile = file(keystorePath)
-                storePassword = System.getenv("KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("KEY_ALIAS")
-                keyPassword = System.getenv("KEY_PASSWORD")
+                storePassword = envOrNull("KEYSTORE_PASSWORD") ?: "qsactions"
+                keyAlias = envOrNull("KEY_ALIAS") ?: "qsactions"
+                keyPassword = envOrNull("KEY_PASSWORD") ?: "qsactions"
             }
         }
     }
