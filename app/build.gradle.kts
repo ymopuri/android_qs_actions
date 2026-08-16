@@ -19,17 +19,23 @@ android {
         versionName = "0.2.0"
     }
 
-    // Supplied by CI from repository secrets. Absent locally, in which case the
-    // release variant builds unsigned rather than failing outright.
+    // The checked-in key signs releases so anyone can build an identical, installable
+    // APK — no secrets to configure. It is deliberately not a secret: see
+    // signing/README.md for what that does and doesn't cost.
+    //
+    // Every value can be overridden by environment variable, so moving to a private
+    // key later means setting four secrets in CI and changing nothing here.
+    val defaultKeystore = rootProject.file("signing/release.jks")
     val keystorePath: String? = System.getenv("KEYSTORE_FILE")
+        ?: defaultKeystore.takeIf { it.exists() }?.absolutePath
 
     signingConfigs {
         if (keystorePath != null) {
             create("release") {
                 storeFile = file(keystorePath)
-                storePassword = System.getenv("KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("KEY_ALIAS")
-                keyPassword = System.getenv("KEY_PASSWORD")
+                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "qsactions"
+                keyAlias = System.getenv("KEY_ALIAS") ?: "qsactions"
+                keyPassword = System.getenv("KEY_PASSWORD") ?: "qsactions"
             }
         }
     }

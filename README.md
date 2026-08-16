@@ -112,40 +112,20 @@ signing environment variables below are set.
 
 ## Cutting a release
 
-Releases are published by CI when a `v*` tag is pushed:
+Push a `v*` tag and CI does the rest — no setup, no secrets:
 
 ```
 git tag v0.2.0 && git push origin v0.2.0
 ```
 
-Keep `versionName` in `app/build.gradle.kts` in step with the tag — the release
-is named from the tag, not from the build.
+Keep `versionName` in `app/build.gradle.kts` in step with the tag; the release is
+named from the tag, not from the build. CI signs with the checked-in key, verifies
+the result with `apksigner` before publishing, and fails rather than shipping an
+unsigned APK.
 
-### One-time signing setup
-
-Generate a keystore **on your own machine** and keep it somewhere safe. If you
-lose it you cannot ship an upgrade to anyone who installed a previous release —
-Android requires the same key.
-
-```
-keytool -genkeypair -v \
-  -keystore release.jks \
-  -alias qsactions \
-  -keyalg RSA -keysize 4096 -validity 10000
-```
-
-Then add four [repository secrets](../../settings/secrets/actions):
-
-| Secret | Value |
-|---|---|
-| `KEYSTORE_BASE64` | `base64 -w0 release.jks` |
-| `KEYSTORE_PASSWORD` | the keystore password |
-| `KEY_ALIAS` | `qsactions` |
-| `KEY_PASSWORD` | the key password |
-
-CI decodes the keystore into the runner's temp directory, builds, and verifies
-with `apksigner` before publishing, so an unsigned APK fails the job rather than
-reaching the release page.
+The signing key lives in `signing/` and is intentionally not a secret — see
+[signing/README.md](signing/README.md) for what that trade costs and how to move
+to a private key without changing the build.
 
 ## Credits
 
