@@ -1,5 +1,12 @@
 # Quick Settings Actions
 
+> [!WARNING]
+> **Deprecated.** This app is no longer maintained. A fork of
+> [thedjchi's Shizuku](https://github.com/thedjchi/Shizuku) covers everything it
+> does natively, without the separate app, auth token, or Stealth-mode
+> action/package workaround. Existing releases stay downloadable but won't be
+> updated.
+
 A small Android app that puts toggleable actions in Quick Settings:
 
 | Tile | What it toggles |
