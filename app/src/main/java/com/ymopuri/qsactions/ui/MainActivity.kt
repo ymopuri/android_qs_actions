@@ -44,6 +44,14 @@ private val ScreenSaver = Saver<Screen, String>(
 
 class MainActivity : ComponentActivity() {
 
+    override fun onResume() {
+        super.onResume()
+        // Keep tile components in step with whether their action can run. On resume
+        // rather than once, because the permission the debugging tiles depend on can
+        // be granted from outside the app — over adb, say — while it's backgrounded.
+        TileEnabler.syncAll(this)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -56,11 +64,6 @@ class MainActivity : ComponentActivity() {
                 val actions = remember { ActionRegistry.actions(this) }
                 var screen by rememberSaveable(stateSaver = ScreenSaver) {
                     mutableStateOf<Screen>(Screen.Home)
-                }
-
-                // Keep tile components in step with whether their action can run.
-                LaunchedEffect(Unit) {
-                    actions.forEach { TileEnabler.syncTileEnabled(this@MainActivity, it) }
                 }
 
                 // Without this the system back gesture leaves the app entirely

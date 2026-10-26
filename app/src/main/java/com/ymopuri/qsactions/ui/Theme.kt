@@ -22,7 +22,7 @@ fun QsActionsTheme(
         ThemeMode.Dark -> true
     }
 
-    // minSdk is 33, so dynamic colour is always available.
+    // minSdk is 31, which is exactly where dynamic colour starts.
     val colorScheme = runCatching {
         if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
     }.getOrElse {

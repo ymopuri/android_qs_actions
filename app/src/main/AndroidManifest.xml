@@ -49,6 +49,42 @@
             </intent-filter>
         </service>
 
+        <service
+            android:name=".tile.DeveloperOptionsTileService"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_developer_options"
+            android:label="@string/developer_options_tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".tile.UsbDebuggingTileService"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_usb_debugging"
+            android:label="@string/usb_debugging_tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".tile.WirelessDebuggingTileService"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_wireless_debugging"
+            android:label="@string/wireless_debugging_tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
         <!-- Required by the Shizuku API so the server can hand us its binder. -->
         <provider
             android:name="rikka.shizuku.ShizukuProvider"

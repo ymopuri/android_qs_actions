@@ -1,7 +1,13 @@
 # Quick Settings Actions
 
-A small Android app that puts toggleable actions in Quick Settings. The first — and
-currently only — action starts and stops Shizuku.
+A small Android app that puts toggleable actions in Quick Settings:
+
+| Tile | What it toggles |
+|---|---|
+| **Shizuku control** | Starts and stops Shizuku |
+| **Developer options** | `development_settings_enabled` |
+| **USB debugging** | `adb_enabled` |
+| **Wireless debugging** | `adb_wifi_enabled` |
 
 ## Why
 
@@ -18,7 +24,30 @@ not upstream Shizuku. The fork adds two exported broadcast receivers
 `<package>.START` / `<package>.STOP` intent; upstream has no equivalent, and its
 `Shizuku.exit()` is restricted to the manager app.
 
-Android 13+ (`minSdk 33`).
+Android 12+ (`minSdk 31`). On Android 12 the one-tap **Add tile** prompt doesn't
+exist, so the button enables the tile and you add it from the Quick Settings edit
+screen yourself.
+
+## Debugging tiles
+
+Developer options, USB debugging, and wireless debugging each get their own tile.
+All three need `WRITE_SECURE_SETTINGS` (see below) and stay unavailable until it's
+granted.
+
+They follow the same cascades the Settings app enforces, so the device never ends
+up in a state Settings couldn't have produced:
+
+- **Developer options off** also turns off USB and wireless debugging. Leaving
+  adbd running behind a hidden menu is what banking apps still catch.
+- **USB or wireless debugging on** also turns Developer options on.
+
+Each tile checks that its change actually held. Android can veto a write after
+accepting it — wireless debugging with no Wi-Fi flips straight back off — and the
+tile reports that rather than showing a state that isn't true.
+
+**These interact with Shizuku.** Turning debugging off stops an adb-started
+Shizuku, and the fork's Watchdog may then restart it, which turns debugging back
+on. If a debugging tile won't stay off, stop Shizuku from its own tile first.
 
 ## Setup
 

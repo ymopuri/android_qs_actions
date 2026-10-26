@@ -1,6 +1,7 @@
 package com.ymopuri.qsactions.action
 
 import android.content.Context
+import com.ymopuri.qsactions.debugging.DebuggingActions
 import com.ymopuri.qsactions.shizuku.ShizukuToggleAction
 
 /**
@@ -27,5 +28,5 @@ object ActionRegistry {
 
     private fun buildActions(appContext: Context): List<QsAction> = listOf(
         ShizukuToggleAction(appContext),
-    )
+    ) + DebuggingActions.all(appContext)
 }

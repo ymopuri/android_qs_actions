@@ -19,11 +19,13 @@ android {
 
     defaultConfig {
         applicationId = "com.ymopuri.qsactions"
-        // requestAddTileService() and the intent-based Shizuku fork both require 33.
-        minSdk = 33
+        // Android 12. The only thing in the app that needs API 33 is the one-tap
+        // "Add tile" prompt, which is gated; everything else — TileService, the
+        // Shizuku intents, dynamic colour — works from 31.
+        minSdk = 31
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
     }
 
     // The checked-in key signs releases so anyone can build an identical, installable

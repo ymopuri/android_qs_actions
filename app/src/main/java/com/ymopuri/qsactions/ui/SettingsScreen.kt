@@ -40,6 +40,7 @@ import com.ymopuri.qsactions.prefs.ThemeMode
 import com.ymopuri.qsactions.prefs.ThemePrefs
 import com.ymopuri.qsactions.shizuku.ShizukuShell
 import com.ymopuri.qsactions.system.SecureSettings
+import com.ymopuri.qsactions.tile.TileEnabler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -134,6 +135,8 @@ fun SettingsScreen(onNavigateUp: () -> Unit) {
                                     ShizukuShell.grantWriteSecureSettings(context)
                                         .onSuccess {
                                             permissionRevision++
+                                            // Unlocks the debugging tiles immediately.
+                                            TileEnabler.syncAll(context)
                                             showToast(
                                                 context,
                                                 if (SecureSettings.canWrite(context)) {

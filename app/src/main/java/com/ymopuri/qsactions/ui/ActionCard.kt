@@ -1,6 +1,8 @@
 package com.ymopuri.qsactions.ui
 
 import android.app.StatusBarManager
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -144,8 +146,19 @@ fun ActionCard(
                     labels.setLabel(action, draft)
                     renaming = false
                     TileEnabler.setTileEnabled(context, action.tileComponent, true)
-                    TileEnabler.requestAddTile(context, action) { result ->
-                        showToast(context, addTileMessage(result))
+                    if (TileEnabler.canRequestAddTile) {
+                        TileEnabler.requestAddTile(context, action) { result ->
+                            showToast(context, addTileMessage(result))
+                        }
+                    } else {
+                        // Android 12 has no add-tile prompt. Enabling the component is
+                        // what makes it appear in the Quick Settings editor.
+                        showToast(
+                            context,
+                            "Tile ready — add \"${labels.labelFor(action)}\" from the " +
+                                "Quick Settings edit screen",
+                            long = true,
+                        )
                     }
                 }) { Text("Add tile") }
             },
@@ -163,6 +176,7 @@ private fun statusLabel(state: ActionState): String = when (state) {
     is ActionState.Unavailable -> state.reason
 }
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 private fun addTileMessage(result: Int): String = when (result) {
     StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED -> "Tile added"
     StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED -> "Already in Quick Settings"
