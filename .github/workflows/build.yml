@@ -138,7 +138,7 @@ jobs:
             echo "If you have an older debug build installed, uninstall it first — the"
             echo "signing key differs and Android will refuse the upgrade."
             echo
-            echo "Requires Android 13+ and [thedjchi's Shizuku fork](https://github.com/thedjchi/Shizuku);"
+            echo "Requires Android 12+ and [thedjchi's Shizuku fork](https://github.com/thedjchi/Shizuku);"
             echo "upstream Shizuku exposes no start/stop intent."
           } > release-notes.md
 
